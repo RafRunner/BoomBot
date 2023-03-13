@@ -1,4 +1,3 @@
-import { Constants } from 'discord.js';
 import { exit } from 'process';
 
 const token: string | undefined = process.env.TOKEN;
@@ -9,12 +8,7 @@ if (!token || !clientId) {
     exit(1);
 }
 
-type Constants = {
-    TOKEN: string,
-    CLIENT_ID: string,
-}
-
-const constants: Constants = {
+const constants = {
     TOKEN: token,
     CLIENT_ID: clientId,
 }
