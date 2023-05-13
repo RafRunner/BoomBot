@@ -1,58 +1,53 @@
-import {
-    REST,
-    Routes,
-    APIApplicationCommand,
-} from 'discord.js';
+import { REST, Routes, APIApplicationCommand } from 'discord.js';
 import { constants } from './constants';
 
 const rest = new REST({ version: '10' }).setToken(constants.TOKEN);
 
-function mapCommandsToExistingCommands(
-    allCommands: APIApplicationCommand[],
-    existingCommands: APIApplicationCommand[]
-): Map<APIApplicationCommand, APIApplicationCommand | null> {
-    return allCommands.reduce(
-        (map: Map<APIApplicationCommand, APIApplicationCommand | null>, command: APIApplicationCommand) => {
-            const old = existingCommands.find((it) => it.name == command.name);
-            map.set(command, old || null);
-            return map;
-        },
-        new Map()
-    );
+function mapLocalToExistingCommands(
+    localCommands: APIApplicationCommand[],
+    remoteCommands: APIApplicationCommand[]
+): [APIApplicationCommand | null, APIApplicationCommand | null][] {
+    const mapped: [APIApplicationCommand | null, APIApplicationCommand | null][] = [];
+
+    for (const local of localCommands) {
+        const remote = remoteCommands.find((it) => it.name === local.name);
+        mapped.push([local, remote || null]);
+    }
+
+    for (const remote of remoteCommands) {
+        const local = localCommands.find((it) => it.name === remote.name);
+        if (!local) {
+            mapped.push([null, remote]);
+        }
+    }
+
+    return mapped;
 }
 
-function findDeletedCommands(
-    allCommands: APIApplicationCommand[],
-    existingCommands: APIApplicationCommand[]
-): APIApplicationCommand[] {
-    const commandNames = allCommands.map((it) => it.name);
-    return existingCommands.filter(({ name }) => commandNames.indexOf(name) === -1);
-}
-
-export async function updateCommands(allCommands: APIApplicationCommand[]): Promise<void> {
-    const existingCommands = (await rest.get(
+export async function updateCommands(localCommands: APIApplicationCommand[]): Promise<void> {
+    const remoteCommands = (await rest.get(
         Routes.applicationCommands(constants.CLIENT_ID)
     )) as APIApplicationCommand[];
 
     console.log(`Started updaing application / commands.`);
 
-    mapCommandsToExistingCommands(allCommands, existingCommands).forEach(async (oldCommand, command) => {
-        if (!oldCommand) {
-            console.log(`\t|-Creating command ${command.name}`);
-            await rest.post(Routes.applicationCommands(constants.CLIENT_ID), { body: command });
-        } else {
-            if (oldCommand.description === command.description) {
-                return;
-            }
-            console.log(`\t|-Updating command ${command.name}`);
-            await rest.patch(Routes.applicationCommand(constants.CLIENT_ID, oldCommand.id), { body: command });
-        }
-    });
+    for (const [local, remote] of mapLocalToExistingCommands(localCommands, remoteCommands)) {
+        if (!remote) {
+            console.log(`\t|-Creating command ${local!.name}`);
+            await rest.post(Routes.applicationCommands(constants.CLIENT_ID), { body: local });
 
-    findDeletedCommands(allCommands, existingCommands).forEach(async (deletedCommand) => {
-        console.log(`\t|-Deleting command ${deletedCommand.name}`);
-        await rest.delete(Routes.applicationCommand(constants.CLIENT_ID, deletedCommand.id));
-    });
+        } else if (local) {
+            if (local.description === remote.description) {
+                continue;
+            }
+            console.log(`\t|-Updating command ${local.name}`);
+            await rest.patch(Routes.applicationCommand(constants.CLIENT_ID, remote.id), { body: local });
+
+        } else {
+            console.log(`\t|-Deleting command ${remote.name}`);
+            await rest.delete(Routes.applicationCommand(constants.CLIENT_ID, remote.id));
+        }
+    };
 
     console.log(`Successfully updated application / commands.`);
 }

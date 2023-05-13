@@ -8,7 +8,7 @@ const commands = [
     {
         name: 'pong',
         description: 'Replies with Ping!',
-    }
+    },
 ] as APIApplicationCommand[];
 
 export { commands };
