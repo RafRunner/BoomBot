@@ -2,11 +2,11 @@ import * as dotenv from 'dotenv';
 
 dotenv.config();
 
-import { client } from './discordClient';
+import { client } from './clients/discordClient';
 import { ActivityType, Interaction } from 'discord.js';
 import { constants } from './constants';
-import { updateCommands } from './updateCommands';
-import { commands } from './commands/commandList';
+import { updateCommands } from './commands/core/updateCommands';
+import { commands } from './commands/core/commandList';
 
 client.on('ready', () => {
     client.user!.setActivity('music!', { type: ActivityType.Listening });

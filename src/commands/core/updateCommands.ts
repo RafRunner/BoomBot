@@ -1,5 +1,5 @@
 import { REST, Routes, APIApplicationCommand } from 'discord.js';
-import { constants } from './constants';
+import { constants } from '../../constants';
 
 const rest = new REST({ version: '10' }).setToken(constants.TOKEN);
 
